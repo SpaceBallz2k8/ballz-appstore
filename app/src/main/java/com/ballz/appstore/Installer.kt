@@ -97,6 +97,23 @@ object Installer {
         return null
     }
 
+    /** Total bytes in the app's cache folder (downloads, unpacked archives, image cache). */
+    fun cacheBytes(ctx: Context): Long =
+        ctx.cacheDir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+
+    /** Deletes everything in the cache folder. Returns bytes freed. */
+    fun clearCache(ctx: Context): Long {
+        val before = cacheBytes(ctx)
+        ctx.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
+        return before
+    }
+
+    /** Removes the downloaded APK and any unpacked archive contents. */
+    fun cleanTemp(ctx: Context) {
+        File(ctx.cacheDir, "download.apk").delete()
+        File(ctx.cacheDir, "extract").deleteRecursively()
+    }
+
     fun install(ctx: Context, apk: File) {
         val installer = ctx.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)

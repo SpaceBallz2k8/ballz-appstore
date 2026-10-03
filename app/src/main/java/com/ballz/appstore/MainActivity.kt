@@ -177,9 +177,17 @@ fun HomeScreen(vm: MainViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.6f),
                 )
+                vm.cacheNote?.let {
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = Accent)
+                }
             }
-            Button(onClick = { vm.refresh() }, enabled = !vm.loading) {
-                Text(if (vm.loading) "Refreshing…" else "Refresh")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = { vm.clearCache() }) {
+                    Text(if (vm.cacheBytes > 0) "Clear cache · ${formatBytes(vm.cacheBytes)}" else "Clear cache")
+                }
+                Button(onClick = { vm.refresh() }, enabled = !vm.loading) {
+                    Text(if (vm.loading) "Refreshing…" else "Refresh")
+                }
             }
         }
 
@@ -361,6 +369,17 @@ fun DetailScreen(vm: MainViewModel, app: CatalogApp) {
                             onClick = { vm.launch() },
                             modifier = if (showInstall) Modifier else Modifier.focusRequester(focus),
                         ) { Text("Open") }
+                    }
+                    if (vm.canUninstall(app)) {
+                        Button(
+                            onClick = { vm.uninstall() },
+                            colors = ButtonDefaults.colors(
+                                containerColor = Color.White.copy(alpha = 0.12f),
+                                contentColor = Color(0xFFFF8A80),
+                                focusedContainerColor = Color(0xFFFF5252),
+                                focusedContentColor = Color.Black,
+                            ),
+                        ) { Text("Uninstall") }
                     }
                 }
             }
