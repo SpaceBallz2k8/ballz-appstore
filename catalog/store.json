@@ -1,8 +1,27 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 6,
-  "updatedAt": "2026-10-03T22:14:47Z",
+  "catalogVersion": 8,
+  "updatedAt": "2026-10-03T22:35:15Z",
   "apps": [
+    {
+      "id": "ballz-appstore",
+      "repo": "SpaceBallz2k8/ballz-appstore",
+      "name": "Ballz Store",
+      "description": "ftv store",
+      "category": "Ballz Store",
+      "packageName": "com.ballz.appstore",
+      "minSdk": 22,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "1987070a3426eb014191ac921054cab6cc40b6294abacfaf6c42ee0570afbe38"
+      ],
+      "status": "active"
+    },
     {
       "id": "newpipe",
       "repo": "TeamNewPipe/NewPipe",
@@ -53,6 +72,23 @@
         "19de04e5d68466069d30ec63c6ba7d9e3cf73b5d61cb4b3762c2b9b253ecbd03"
       ],
       "status": "active"
+    },
+    {
+      "id": "tv-bro",
+      "repo": "truefedex/tv-bro",
+      "name": "TV Bro: TV Web Browser",
+      "description": "Simple web browser for android optimized to use with TV remote",
+      "category": "Web Browser",
+      "packageName": "com.phlox.tvwebbrowser",
+      "minSdk": 26,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "1e5124be7e7fcb7a6462b47a42a8567863c6fccc6fe7708cd278be4f43047c75"
+      ],
+      "status": "active",
+      "icon": "icons/tv-bro.png"
     }
   ]
 }
