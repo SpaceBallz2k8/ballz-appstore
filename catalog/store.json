@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 9,
-  "updatedAt": "2026-10-03T23:08:41Z",
+  "catalogVersion": 10,
+  "updatedAt": "2026-10-03T23:19:39Z",
   "apps": [
     {
       "id": "ballz-appstore",
       "repo": "SpaceBallz2k8/ballz-appstore",
       "name": "Ballz Store",
-      "description": "ftv store",
+      "description": "A simple Android TV / Fire TV Store for github apps\nARM v7a Only",
       "category": "Ballz Store",
       "packageName": "com.ballz.appstore",
       "minSdk": 22,
