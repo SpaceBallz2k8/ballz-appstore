@@ -16,6 +16,7 @@ Set GITHUB_TOKEN to avoid API rate limits (optional).
 import argparse
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 import re
@@ -140,6 +141,50 @@ def apk_abis(path):
                        if n.startswith("lib/") and n.count("/") >= 2})
 
 
+DPI_ORDER = ("xxxhdpi", "xxhdpi", "xhdpi", "hdpi", "mdpi", "ldpi")
+
+
+def find_icon(path, a):
+    """Best raster launcher icon bytes from the APK, or None (adaptive/vector-only apps)."""
+    with zipfile.ZipFile(path) as z:
+        names = z.namelist()
+        try:
+            p = a.get_app_icon()
+        except Exception:
+            p = None
+        if p and p.lower().endswith((".png", ".webp", ".jpg", ".jpeg")) and p in names:
+            return z.read(p)
+
+        def rank(n):
+            l = n.lower()
+            base = l.rsplit("/", 1)[-1]
+            layer = any(w in base for w in ("foreground", "background", "monochrome"))
+            dpi = next((i for i, d in enumerate(DPI_ORDER) if d in l), len(DPI_ORDER))
+            return (layer, not base.startswith("ic_launcher."), dpi, -z.getinfo(n).file_size)
+
+        cands = [n for n in names
+                 if n.startswith("res/") and n.lower().endswith((".png", ".webp"))
+                 and ("launcher" in n.lower() or "icon" in n.lower())]
+        return z.read(min(cands, key=rank)) if cands else None
+
+
+def normalize_icon(data):
+    """Resize to <=192px PNG. Needs Pillow for webp/large images; raw PNGs pass through without it."""
+    if not data:
+        return None
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(data)).convert("RGBA")
+        img.thumbnail((192, 192))
+        out = io.BytesIO()
+        img.save(out, "PNG", optimize=True)
+        return out.getvalue()
+    except ImportError:
+        return data if data[:8] == b"\x89PNG\r\n\x1a\n" else None
+    except Exception:
+        return None
+
+
 def apk_info(path):
     try:
         from androguard.core.apk import APK          # androguard 4.x
@@ -155,6 +200,7 @@ def apk_info(path):
         "label": a.get_app_name(),
         "minSdk": int(a.get_min_sdk_version() or 1),
         "certs": sorted(certs),
+        "icon": find_icon(path, a),
     }
 
 
@@ -273,7 +319,13 @@ def main():
         "certSha256": info["certs"],
         "status": "active",
     }
-    icon = args.icon or (existing or {}).get("icon")
+    icon_png = normalize_icon(info.get("icon"))
+    if args.icon:
+        icon = args.icon
+    elif icon_png:
+        icon = f"icons/{entry['id']}.png"      # relative to catalog/, resolved by the app
+    else:
+        icon = (existing or {}).get("icon")
     if icon:
         entry["icon"] = icon
     pattern = args.asset_pattern or (existing or {}).get("assetPattern")
@@ -285,11 +337,19 @@ def main():
 
     print("\n" + json.dumps(entry, indent=2, ensure_ascii=False))
     print(f"\nRelease {rel['tag_name']} · asset {asset['name']}")
+    print("Icon: " + ("extracted from the APK" if icon_png and not args.icon else
+                      "from --icon" if args.icon else
+                      "no raster icon in the APK – the app will use the owner's GitHub avatar"))
     if info["minSdk"] > 22:
         print(f"Note: minSdk {info['minSdk']} – won't show on devices older than that (e.g. Fire OS 5).")
 
     if not args.yes and input("\nAdd to catalog? [Y/n] ").strip().lower() in ("n", "no"):
         sys.exit("Aborted.")
+
+    if icon_png and not args.icon:
+        icons_dir = STORE.parent / "icons"
+        icons_dir.mkdir(parents=True, exist_ok=True)
+        (icons_dir / f"{entry['id']}.png").write_bytes(icon_png)
 
     store["apps"] = [a for a in store["apps"] if a["repo"].lower() != repo.lower()] + [entry]
     save_store(store)

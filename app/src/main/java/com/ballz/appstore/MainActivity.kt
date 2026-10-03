@@ -2,10 +2,15 @@
 
 package com.ballz.appstore
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +29,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
@@ -59,10 +66,21 @@ private val BgTop = Color(0xFF111827)
 private val BgBottom = Color(0xFF05070A)
 
 class MainActivity : ComponentActivity() {
+    private val vm: MainViewModel by viewModels()
+
+    private val notifPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        UpdateWorker.schedule(this)
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+
         setContent {
-            val vm: MainViewModel = viewModel()
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     Box(
@@ -77,6 +95,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        vm.onResume()
+    }
 }
 
 // ---------- helpers ----------
@@ -87,9 +110,15 @@ private fun tint(app: CatalogApp): Pair<Color, Color> {
     return Color.hsv(h, 0.55f, 0.55f) to Color.hsv((h + 40f) % 360f, 0.65f, 0.22f)
 }
 
-/** Catalog icon if given, otherwise the repo owner's GitHub avatar. */
-private fun iconUrl(app: CatalogApp): String =
-    app.icon ?: "https://github.com/${app.repo.substringBefore('/')}.png?size=160"
+/** Icon from the catalog (extracted from the APK), otherwise the repo owner's GitHub avatar. */
+private fun iconUrl(app: CatalogApp): String {
+    val icon = app.icon
+    return when {
+        icon == null -> "https://github.com/${app.repo.substringBefore('/')}.png?size=160"
+        icon.startsWith("http") -> icon
+        else -> CatalogRepo.CATALOG_URL.substringBeforeLast('/') + "/" + icon   // e.g. icons/newpipe.png
+    }
+}
 
 @Composable
 fun AppIcon(app: CatalogApp, size: Dp) {
@@ -124,6 +153,9 @@ fun Pill(text: String) {
 @Composable
 fun HomeScreen(vm: MainViewModel) {
     val grouped = vm.apps.groupBy { it.category }.toSortedMap()
+    val updates = vm.updates()
+    val sections: List<Pair<String, List<CatalogApp>>> =
+        (if (updates.isNotEmpty()) listOf("Updates available" to updates) else emptyList()) + grouped.toList()
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -140,7 +172,8 @@ fun HomeScreen(vm: MainViewModel) {
                     color = Accent,
                 )
                 Text(
-                    if (vm.offline) "Offline – showing saved catalog" else "${vm.apps.size} apps",
+                    (if (vm.offline) "Offline – showing saved catalog" else "${vm.apps.size} apps") +
+                        (if (updates.isNotEmpty()) "  •  ${updates.size} update" + (if (updates.size == 1) "" else "s") else ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.6f),
                 )
@@ -160,7 +193,7 @@ fun HomeScreen(vm: MainViewModel) {
         // Padding lives INSIDE the lazy lists so focused cards (which scale up and glow)
         // have room to grow instead of being clipped by the list bounds.
         LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
-            items(grouped.entries.toList()) { (category, list) ->
+            items(sections) { (category, list) ->
                 Column {
                     Row(
                         Modifier.padding(start = 48.dp, top = 12.dp),
@@ -181,7 +214,7 @@ fun HomeScreen(vm: MainViewModel) {
                         contentPadding = PaddingValues(horizontal = 48.dp, vertical = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(22.dp),
                     ) {
-                        items(list, key = { it.id }) { app -> AppCard(app) { vm.open(app) } }
+                        items(list, key = { it.id }) { app -> AppCard(app, vm.badge(app)) { vm.open(app) } }
                     }
                 }
             }
@@ -190,7 +223,7 @@ fun HomeScreen(vm: MainViewModel) {
 }
 
 @Composable
-fun AppCard(app: CatalogApp, onClick: () -> Unit) {
+fun AppCard(app: CatalogApp, badge: Badge, onClick: () -> Unit) {
     val (bright, dark) = tint(app)
     val shape = RoundedCornerShape(18.dp)
     Card(
@@ -211,6 +244,12 @@ fun AppCard(app: CatalogApp, onClick: () -> Unit) {
                 Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)))
             )
         ) {
+            if (badge == Badge.Update) {
+                Box(
+                    Modifier.align(Alignment.TopEnd).padding(12.dp).size(12.dp)
+                        .clip(CircleShape).background(Accent)
+                )
+            }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AppIcon(app, 52.dp)
@@ -224,8 +263,15 @@ fun AppCard(app: CatalogApp, onClick: () -> Unit) {
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (app.status != "active") {
-                            Text("⚠ ${app.status}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFC107))
+                        when {
+                            app.status != "active" ->
+                                Text("⚠ ${app.status}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFC107))
+                            badge == Badge.Update ->
+                                Text("⬆ Update available", style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold, color = Accent)
+                            badge == Badge.Installed ->
+                                Text("✓ Installed", style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.6f))
                         }
                     }
                 }

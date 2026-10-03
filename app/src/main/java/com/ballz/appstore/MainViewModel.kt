@@ -15,20 +15,25 @@ data class Detail(
     val release: GhRelease? = null,
     val asset: GhAsset? = null,
     val installed: String? = null,
+    val upToDate: Boolean = false,
     val busy: String? = null,
     val progress: Float? = null,
     val message: String? = null,
-) {
-    private fun norm(v: String) = v.trim().removePrefix("v").removePrefix("V")
-    val upToDate: Boolean
-        get() = installed != null && release != null && norm(installed) == norm(release.tagName)
-}
+)
+
+enum class Badge { None, Installed, Update }
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val ctx get() = getApplication<Application>()
     private val repo = CatalogRepo(app)
+    private val latestRepo = LatestRepo(app)
+    private var installingTag: String? = null
 
     var apps by mutableStateOf<List<CatalogApp>>(emptyList())
+        private set
+    var latest by mutableStateOf<Map<String, LatestApp>>(emptyMap())
+        private set
+    var installedVersions by mutableStateOf<Map<String, String>>(emptyMap())
         private set
     var loading by mutableStateOf(true)
         private set
@@ -41,6 +46,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         apps = repo.loadLocal().apps.filter { isCompatible(it) }
+        latest = latestRepo.loadLocal()
+        refreshInstalled()
         refresh()
         viewModelScope.launch { InstallEvents.flow.collect { onInstallResult(it) } }
     }
@@ -58,20 +65,48 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 apps = remote.apps.filter { isCompatible(it) }
                 offline = false
             } else offline = true
+            latestRepo.fetchRemote()?.let { latest = it }
+            refreshInstalled()
             loading = false
         }
     }
+
+    /** Re-reads installed versions (after install, or when returning to the app). */
+    fun refreshInstalled() {
+        installedVersions = apps.mapNotNull { a ->
+            UpdateChecker.installedVersion(ctx, a.packageName)?.let { a.packageName to it }
+        }.toMap()
+    }
+
+    fun onResume() {
+        refreshInstalled()
+        val a = selected ?: return
+        val inst = UpdateChecker.installedVersion(ctx, a.packageName)
+        detail = detail.copy(
+            installed = inst,
+            upToDate = detail.release?.let { UpdateChecker.isCurrent(ctx, a, inst, it.tagName) } ?: false,
+        )
+    }
+
+    fun badge(app: CatalogApp): Badge {
+        val inst = installedVersions[app.packageName] ?: return Badge.None
+        val tag = latest[app.id]?.tag ?: return Badge.Installed
+        return if (UpdateChecker.isCurrent(ctx, app, inst, tag)) Badge.Installed else Badge.Update
+    }
+
+    fun updates(): List<CatalogApp> = apps.filter { badge(it) == Badge.Update }
 
     fun open(app: CatalogApp) {
         selected = app
         detail = Detail(loading = true)
         viewModelScope.launch {
-            val installed = installedVersion(app.packageName)
+            val installed = UpdateChecker.installedVersion(ctx, app.packageName)
             detail = try {
                 val rel = repo.latestRelease(app.repo)
                 val asset = ApkPicker.pick(rel.assets, app.assetPattern)
                 Detail(
                     release = rel, asset = asset, installed = installed,
+                    upToDate = UpdateChecker.isCurrent(ctx, app, installed, rel.tagName),
                     message = if (asset == null) "No compatible APK in the latest release." else null,
                 )
             } catch (e: Exception) {
@@ -91,6 +126,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             detail = detail.copy(message = "Allow installs from this app, then press the button again.")
             return
         }
+        installingTag = detail.release?.tagName
         viewModelScope.launch {
             try {
                 detail = detail.copy(busy = "Downloading…", progress = 0f, message = null)
@@ -122,10 +158,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun onInstallResult(r: InstallResult) {
         val app = selected
         detail = when (r.status) {
-            PackageInstaller.STATUS_SUCCESS -> detail.copy(
-                busy = null, message = "Installed ✓",
-                installed = app?.let { installedVersion(it.packageName) } ?: detail.installed,
-            )
+            PackageInstaller.STATUS_SUCCESS -> {
+                app?.let { a -> installingTag?.let { UpdateChecker.recordInstalled(ctx, a.packageName, it) } }
+                val inst = app?.let { UpdateChecker.installedVersion(ctx, it.packageName) }
+                refreshInstalled()
+                detail.copy(busy = null, message = "Installed ✓", installed = inst ?: detail.installed, upToDate = true)
+            }
             PackageInstaller.STATUS_FAILURE_ABORTED -> detail.copy(busy = null, message = "Cancelled.")
             PackageInstaller.STATUS_FAILURE_CONFLICT,
             PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> detail.copy(
@@ -135,8 +173,4 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             else -> detail.copy(busy = null, message = "Install failed: ${r.message ?: r.status}")
         }
     }
-
-    private fun installedVersion(pkg: String): String? = try {
-        ctx.packageManager.getPackageInfo(pkg, 0).versionName
-    } catch (_: Exception) { null }
 }

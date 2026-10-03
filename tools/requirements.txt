@@ -1,1 +1,2 @@
 androguard>=4.1
+pillow>=10
