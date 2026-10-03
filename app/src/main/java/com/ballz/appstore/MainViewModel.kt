@@ -94,7 +94,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 detail = detail.copy(busy = "Downloading…", progress = 0f, message = null)
-                val file = Installer.download(ctx, asset.url) { p -> detail = detail.copy(progress = p) }
+                val downloaded = Installer.download(ctx, asset.url) { p -> detail = detail.copy(progress = p) }
+                detail = detail.copy(busy = "Unpacking…", progress = null)
+                val file = ArchiveExtractor.resolveApk(
+                    downloaded, asset.name, app.innerApkPattern, java.io.File(ctx.cacheDir, "extract"),
+                )
                 Installer.verify(ctx, file, app)?.let {
                     file.delete()
                     detail = detail.copy(busy = null, progress = null, message = it)

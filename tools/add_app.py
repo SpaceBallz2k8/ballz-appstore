@@ -19,7 +19,9 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
+import tarfile
 import tempfile
 import urllib.error
 import urllib.request
@@ -53,10 +55,21 @@ def download(url, dest):
             f.write(chunk)
 
 
+ARCHIVE_EXT = (".zip", ".tar.gz", ".tgz", ".tar")
+
+
+def is_archive(name):
+    return name.lower().endswith(ARCHIVE_EXT)
+
+
 def score(name, target="armeabi-v7a"):
     """Mirror of ApkPicker.kt for a 32-bit ARM target. -1 = unusable."""
     n = name.lower()
-    if not n.endswith(".apk") or "debug" in n:
+    if "debug" in n:
+        return -1
+    is_apk = n.endswith(".apk")
+    # Archives only count if they look like Android builds (releases also hold linux/windows/mac files).
+    if not is_apk and not (is_archive(n) and ("android" in n or "apk" in n)):
         return -1
     is_v7 = any(t in n for t in V7)
     if not is_v7 and any(t in n for t in WRONG_ARCH):
@@ -69,14 +82,54 @@ def score(name, target="armeabi-v7a"):
 
 
 def pick_asset(assets, pattern=None):
-    apks = [a for a in assets if a["name"].lower().endswith(".apk")]
+    def usable(a):
+        return a["name"].lower().endswith(".apk") or is_archive(a["name"])
     if pattern:
         rx = re.compile(pattern, re.I)
-        for a in apks:
-            if rx.search(a["name"]):
+        for a in assets:
+            if usable(a) and rx.search(a["name"]):
                 return a
-    ranked = sorted(((score(a["name"]), a) for a in apks), key=lambda t: -t[0])
-    return ranked[0][1] if ranked and ranked[0][0] > 0 else None
+    ranked = sorted(
+        ((score(a["name"]), a["name"].lower().endswith(".apk"), a) for a in assets),
+        key=lambda t: (-t[0], not t[1]),
+    )
+    return ranked[0][2] if ranked and ranked[0][0] > 0 else None
+
+
+def extract_apks(archive, asset_name, outdir):
+    """Return [(member_name, path)] for every .apk inside a .zip / .tar / .tar.gz."""
+    found = []
+
+    def dest():
+        return Path(outdir) / f"inner{len(found)}.apk"
+
+    if asset_name.lower().endswith(".zip"):
+        with zipfile.ZipFile(archive) as z:
+            for info in z.infolist():
+                if not info.is_dir() and info.filename.lower().endswith(".apk"):
+                    d = dest()
+                    with z.open(info) as src, open(d, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    found.append((info.filename, d))
+    else:
+        with tarfile.open(archive) as t:
+            for m in t:
+                if m.isfile() and m.name.lower().endswith(".apk"):
+                    d = dest()
+                    with t.extractfile(m) as src, open(d, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    found.append((m.name, d))
+    return found
+
+
+def pick_inner(found, pattern=None):
+    if pattern:
+        rx = re.compile(pattern, re.I)
+        for name, path in found:
+            if rx.search(name):
+                return name, path
+    ranked = sorted(((score(n.rsplit("/", 1)[-1]), n, p) for n, p in found), key=lambda t: -t[0])
+    return (ranked[0][1], ranked[0][2]) if ranked and ranked[0][0] > 0 else None
 
 
 # ---------- APK inspection ----------
@@ -146,6 +199,7 @@ def main():
     p.add_argument("--id", help="override catalog id")
     p.add_argument("--icon", help="icon URL (optional)")
     p.add_argument("--asset-pattern", help="regex to force a specific release asset")
+    p.add_argument("--inner-pattern", help="regex to pick the APK inside an archive asset")
     p.add_argument("--force", action="store_true", help="replace an existing entry")
     p.add_argument("-y", "--yes", action="store_true", help="don't ask for confirmation")
     p.add_argument("--remove", metavar="ID", help="remove an entry by id")
@@ -180,13 +234,26 @@ def main():
     asset = pick_asset(rel.get("assets", []), args.asset_pattern)
     if not asset:
         names = ", ".join(a["name"] for a in rel.get("assets", [])) or "none"
-        sys.exit(f"No usable APK for armeabi-v7a in {rel['tag_name']}. Assets: {names}\n"
+        sys.exit(f"No usable APK (or Android archive) for armeabi-v7a in {rel['tag_name']}. Assets: {names}\n"
                  f"(Try --asset-pattern if the naming is unusual.)")
 
     with tempfile.TemporaryDirectory() as tmp:
-        apk = Path(tmp) / "app.apk"
+        dl = Path(tmp) / "asset.bin"
         print(f"Downloading {asset['name']} ({asset['size'] / 1e6:.1f} MB) …")
-        download(asset["browser_download_url"], apk)
+        download(asset["browser_download_url"], dl)
+
+        if is_archive(asset["name"]):
+            found = extract_apks(dl, asset["name"], tmp)
+            if not found:
+                sys.exit(f"No .apk found inside {asset['name']}.")
+            chosen = pick_inner(found, args.inner_pattern)
+            if not chosen:
+                sys.exit("No suitable APK inside the archive. Found: "
+                         + ", ".join(n for n, _ in found) + "\n(Try --inner-pattern.)")
+            inner_name, apk = chosen
+            print(f"Using {inner_name} from the archive.")
+        else:
+            apk = dl
 
         libs = apk_abis(apk)
         if libs and not any(l in ("armeabi-v7a", "armeabi") for l in libs):
@@ -212,6 +279,9 @@ def main():
     pattern = args.asset_pattern or (existing or {}).get("assetPattern")
     if pattern:
         entry["assetPattern"] = pattern
+    inner = args.inner_pattern or (existing or {}).get("innerApkPattern")
+    if inner:
+        entry["innerApkPattern"] = inner
 
     print("\n" + json.dumps(entry, indent=2, ensure_ascii=False))
     print(f"\nRelease {rel['tag_name']} · asset {asset['name']}")

@@ -24,7 +24,8 @@ data class CatalogApp(
     val abis: List<String> = listOf("any"),  // ["any"] = no native code
     val certSha256: List<String> = emptyList(),
     val icon: String? = null,
-    val assetPattern: String? = null,        // optional regex to force a specific asset
+    val assetPattern: String? = null,        // optional regex to force a specific release asset
+    val innerApkPattern: String? = null,     // optional regex to pick the APK inside an archive
     val status: String = "active",           // active | deprecated | broken
     val statusNote: String? = null,
 )

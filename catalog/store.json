@@ -1,6 +1,42 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 0,
-  "updatedAt": null,
-  "apps": []
+  "catalogVersion": 2,
+  "updatedAt": "2026-10-03T20:34:38Z",
+  "apps": [
+    {
+      "id": "newpipe",
+      "repo": "TeamNewPipe/NewPipe",
+      "name": "NewPipe",
+      "description": "A libre lightweight streaming front-end for Android.",
+      "category": "Media",
+      "packageName": "org.schabi.newpipe",
+      "minSdk": 23,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "cb84069bd68116bafae5ee4ee5b08a567aa6d898404e7cb12f9e756df5cf5cab"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "plezy",
+      "repo": "edde746/plezy",
+      "name": "Plezy",
+      "description": "Modern cross-platform Plex & Jellyfin client built with Flutter",
+      "category": "Media",
+      "packageName": "com.edde746.plezy",
+      "minSdk": 25,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "903b862cf5e3a0bfbad9b5e049ec3de703f83422bba9c5559a7b019716316e72"
+      ],
+      "status": "active"
+    }
+  ]
 }
