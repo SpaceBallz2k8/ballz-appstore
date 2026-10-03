@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 10,
-  "updatedAt": "2026-10-03T23:19:39Z",
+  "catalogVersion": 12,
+  "updatedAt": "2026-10-03T23:30:10Z",
   "apps": [
     {
       "id": "ballz-appstore",
@@ -54,6 +54,23 @@
       ],
       "certSha256": [
         "903b862cf5e3a0bfbad9b5e049ec3de703f83422bba9c5559a7b019716316e72"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "arvio",
+      "repo": "ProdigyV21/Arvio",
+      "name": "ARVIO",
+      "description": "ARVIO - A media hub application with a modern, beautiful interface.",
+      "category": "Media Player",
+      "packageName": "com.arvio.tv",
+      "minSdk": 23,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "9778d7533d4bc1aee80c1d2d7043fb22cba3b79cd11911d3b131c1316d5f17c1"
       ],
       "status": "active"
     },
