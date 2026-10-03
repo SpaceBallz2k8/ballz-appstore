@@ -14,7 +14,7 @@ class CatalogRepo(private val ctx: Context) {
     companion object {
         // TODO: set to your GitHub user/repo once pushed.
         const val CATALOG_URL =
-            "https://raw.githubusercontent.com/spaceballz2k8/ballz-appstore/main/catalog/store.json"
+            "https://raw.githubusercontent.com/SpaceBallz2k8/ballz-appstore/main/catalog/store.json"
         private const val CACHE = "catalog_cache.json"
     }
 
