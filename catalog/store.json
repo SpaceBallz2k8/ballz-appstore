@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 2,
-  "updatedAt": "2026-10-03T20:34:38Z",
+  "catalogVersion": 3,
+  "updatedAt": "2026-10-03T21:01:24Z",
   "apps": [
     {
       "id": "newpipe",
@@ -35,6 +35,22 @@
       ],
       "certSha256": [
         "903b862cf5e3a0bfbad9b5e049ec3de703f83422bba9c5559a7b019716316e72"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "clipious",
+      "repo": "lamarios/clipious",
+      "name": "Clipious",
+      "description": "Invidious client for android",
+      "category": "Streaming",
+      "packageName": "com.github.lamarios.clipious",
+      "minSdk": 24,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "19de04e5d68466069d30ec63c6ba7d9e3cf73b5d61cb4b3762c2b9b253ecbd03"
       ],
       "status": "active"
     }

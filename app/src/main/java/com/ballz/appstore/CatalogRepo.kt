@@ -39,7 +39,7 @@ class CatalogRepo(private val ctx: Context) {
 
     suspend fun fetchRemote(): Catalog? = withContext(Dispatchers.IO) {
         runCatching {
-            http.newCall(Request.Builder().url(CATALOG_URL).build()).execute().use { r ->
+            http.newCall(Request.Builder().url("$CATALOG_URL?t=${System.currentTimeMillis()}").build()).execute().use { r ->
                 if (!r.isSuccessful) return@runCatching null
                 val body = r.body?.string() ?: return@runCatching null
                 val parsed = json.decodeFromString<Catalog>(body)

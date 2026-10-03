@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -54,7 +56,16 @@ class MainActivity : ComponentActivity() {
 fun HomeScreen(vm: MainViewModel) {
     val grouped = vm.apps.groupBy { it.category }.toSortedMap()
     Column(Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 32.dp)) {
-        Text("Ballz Store", style = MaterialTheme.typography.headlineLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Ballz Store", style = MaterialTheme.typography.headlineLarge)
+            Button(onClick = { vm.refresh() }, enabled = !vm.loading) {
+                Text(if (vm.loading) "Refreshing…" else "Refresh")
+            }
+        }
         if (vm.offline) Text("Offline – showing saved catalog", style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(16.dp))
 
