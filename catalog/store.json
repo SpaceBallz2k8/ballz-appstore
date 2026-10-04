@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 13,
-  "updatedAt": "2026-10-04T00:04:10Z",
+  "catalogVersion": 15,
+  "updatedAt": "2026-10-04T10:58:49Z",
   "apps": [
     {
       "id": "ballz-appstore",
@@ -123,6 +123,26 @@
       ],
       "status": "active",
       "icon": "icons/smarttube.png"
+    },
+    {
+      "id": "keymapper",
+      "repo": "keymapperorg/KeyMapper",
+      "name": "Key Mapper",
+      "description": "An Android app to remap the buttons on your devices",
+      "category": "System Utilities",
+      "packageName": "io.github.sds100.keymapper",
+      "minSdk": 26,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "2f41a816b8d60aa1d7cd4976b4452b0335e583d4f4ab14071f303177850ce460"
+      ],
+      "status": "active",
+      "warning": true
     },
     {
       "id": "tv-bro",
