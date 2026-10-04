@@ -9,6 +9,7 @@ data class Catalog(
     val schemaVersion: Int = 1,
     val catalogVersion: Int = 0,
     val updatedAt: String? = null,
+    val warningText: String? = null,         // general system-changes warning; built-in text if absent
     val apps: List<CatalogApp> = emptyList(),
 )
 
@@ -28,6 +29,8 @@ data class CatalogApp(
     val innerApkPattern: String? = null,     // optional regex to pick the APK inside an archive
     val status: String = "active",           // active | deprecated | broken
     val statusNote: String? = null,
+    val warning: Boolean = false,            // shows the system-changes warning (launchers etc.)
+    val warningNote: String? = null,         // optional extra text shown with the warning
 )
 
 /** Subset of the GitHub "latest release" API response. */

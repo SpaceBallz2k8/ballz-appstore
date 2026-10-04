@@ -62,6 +62,7 @@ import coil.compose.AsyncImage
 import kotlin.math.abs
 
 private val Accent = Color(0xFF3DDC84)
+private val Amber = Color(0xFFFFC107)
 private val BgTop = Color(0xFF111827)
 private val BgBottom = Color(0xFF05070A)
 
@@ -90,6 +91,13 @@ class MainActivity : ComponentActivity() {
                         val sel = vm.selected
                         if (sel == null) HomeScreen(vm) else DetailScreen(vm, sel)
                         BackHandler(enabled = sel != null) { vm.back() }
+                        BackHandler(enabled = vm.confirmingInstall) { vm.cancelConfirm() }   // closes the warning first
+                        Text(
+                            "Apps are installed and used at your own risk.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.4f),
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+                        )
                     }
                 }
             }
@@ -200,7 +208,7 @@ fun HomeScreen(vm: MainViewModel) {
 
         // Padding lives INSIDE the lazy lists so focused cards (which scale up and glow)
         // have room to grow instead of being clipped by the list bounds.
-        LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = 40.dp)) {
             items(sections) { (category, list) ->
                 Column {
                     Row(
@@ -263,14 +271,19 @@ fun AppCard(app: CatalogApp, badge: Badge, onClick: () -> Unit) {
                     AppIcon(app, 52.dp)
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text(
-                            app.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (app.warning) {
+                                Text("⚠ ", style = MaterialTheme.typography.titleMedium, color = Amber)
+                            }
+                            Text(
+                                app.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         when {
                             app.status != "active" ->
                                 Text("⚠ ${app.status}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFC107))
@@ -299,6 +312,10 @@ fun AppCard(app: CatalogApp, badge: Badge, onClick: () -> Unit) {
 
 @Composable
 fun DetailScreen(vm: MainViewModel, app: CatalogApp) {
+    if (vm.confirmingInstall) {
+        ConfirmWarning(vm, app)
+        return
+    }
     val d = vm.detail
     val (bright, _) = tint(app)
     val focus = remember { FocusRequester() }
@@ -342,6 +359,9 @@ fun DetailScreen(vm: MainViewModel, app: CatalogApp) {
             if (app.status != "active") {
                 Text("⚠ ${app.status}: ${app.statusNote.orEmpty()}", color = Color(0xFFFFC107))
             }
+            if (app.warning) {
+                WarningBox(vm.warningText, app.warningNote)
+            }
 
             if (d.loading) {
                 Text("Checking latest release…", color = Color.White.copy(alpha = 0.7f))
@@ -353,7 +373,7 @@ fun DetailScreen(vm: MainViewModel, app: CatalogApp) {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (showInstall) {
                         Button(
-                            onClick = { vm.installOrUpdate() },
+                            onClick = { vm.requestInstall() },
                             enabled = d.busy == null,
                             modifier = Modifier.focusRequester(focus),
                             colors = ButtonDefaults.colors(
@@ -399,6 +419,58 @@ fun DetailScreen(vm: MainViewModel, app: CatalogApp) {
                 }
             }
             d.message?.let { Text(it, color = Color.White.copy(alpha = 0.85f)) }
+        }
+    }
+}
+
+// ---------- system-changes warning ----------
+
+@Composable
+fun WarningBox(text: String, note: String?) {
+    Column(
+        Modifier.fillMaxWidth(0.7f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Amber.copy(alpha = 0.14f))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("⚠  $text", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+        if (!note.isNullOrBlank()) {
+            Text(note, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f))
+        }
+    }
+}
+
+/** Shown instead of the app page when Install is pressed on a warned app. Focus starts on Cancel. */
+@Composable
+fun ConfirmWarning(vm: MainViewModel, app: CatalogApp) {
+    val cancelFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { cancelFocus.requestFocus() } }
+
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 96.dp, vertical = 48.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+    ) {
+        Text(
+            "⚠  Before you install ${app.name}",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = Amber,
+        )
+        WarningBox(vm.warningText, app.warningNote)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Button(onClick = { vm.cancelConfirm() }, modifier = Modifier.focusRequester(cancelFocus)) {
+                Text("Cancel")
+            }
+            Button(
+                onClick = { vm.confirmInstall() },
+                colors = ButtonDefaults.colors(
+                    containerColor = Color.White.copy(alpha = 0.12f),
+                    contentColor = Amber,
+                    focusedContainerColor = Amber,
+                    focusedContentColor = Color.Black,
+                ),
+            ) { Text("I understand – install") }
         }
     }
 }

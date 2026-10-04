@@ -13,8 +13,8 @@ android {
         applicationId = "com.ballz.appstore"
         minSdk = 22            // Fire OS 5 (Android 5.1) and up
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
     }
 
     buildTypes {

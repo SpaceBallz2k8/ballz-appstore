@@ -222,11 +222,15 @@ def save_store(store):
     tmp.replace(STORE)
 
 
+class AddError(Exception):
+    """A problem the user should be told about (bad repo, no usable APK, ...)."""
+
+
 def parse_repo(s):
     m = re.search(r"github\.com/([^/\s]+/[^/\s#?]+)", s)
     repo = (m.group(1) if m else s).strip().removesuffix(".git")
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
-        sys.exit(f"Can't parse repo from: {s}")
+        raise AddError(f"Can't parse a GitHub repo from: {s}")
     return repo
 
 
@@ -234,7 +238,117 @@ def slug(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
-# ---------- main ----------
+def write_icon(entry_id, png_bytes):
+    icons_dir = STORE.parent / "icons"
+    icons_dir.mkdir(parents=True, exist_ok=True)
+    (icons_dir / f"{entry_id}.png").write_bytes(png_bytes)
+
+
+def build_entry(repo, *, category=None, name=None, description=None, entry_id=None,
+                icon=None, asset_pattern=None, inner_pattern=None, existing=None, warning=None,
+                warning_note=None, log=print):
+    """
+    Download the newest release of `repo` and work out everything the catalog needs.
+    Shared by the command line and the GUI. Raises AddError on any problem.
+
+    `existing` is the current catalog entry when re-verifying: its name, description,
+    category, status, icon and patterns are kept unless overridden.
+    Returns {"entry", "icon_png", "icon_from_arg", "tag", "asset", "inner", "libs", "notes"}.
+    """
+    existing = existing or {}
+    asset_pattern = asset_pattern or existing.get("assetPattern")
+    inner_pattern = inner_pattern or existing.get("innerApkPattern")
+
+    log(f"Fetching {repo} …")
+    try:
+        meta = gh_json(f"https://api.github.com/repos/{repo}")
+        rel = gh_json(f"https://api.github.com/repos/{repo}/releases/latest")
+    except urllib.error.HTTPError as e:
+        raise AddError(f"GitHub error {e.code}: repo missing/private, or it has no (non-prerelease) release.")
+    except urllib.error.URLError as e:
+        raise AddError(f"Network error: {e.reason}")
+
+    asset = pick_asset(rel.get("assets", []), asset_pattern)
+    if not asset:
+        names = ", ".join(a["name"] for a in rel.get("assets", [])) or "none"
+        raise AddError(f"No usable APK (or Android archive) for armeabi-v7a in {rel['tag_name']}.\n"
+                       f"Assets: {names}\n(Try an asset pattern if the naming is unusual.)")
+
+    inner_name = None
+    with tempfile.TemporaryDirectory() as tmp:
+        dl = Path(tmp) / "asset.bin"
+        log(f"Downloading {asset['name']} ({asset['size'] / 1e6:.1f} MB) …")
+        download(asset["browser_download_url"], dl)
+
+        if is_archive(asset["name"]):
+            found = extract_apks(dl, asset["name"], tmp)
+            if not found:
+                raise AddError(f"No .apk found inside {asset['name']}.")
+            chosen = pick_inner(found, inner_pattern)
+            if not chosen:
+                raise AddError("No suitable APK inside the archive. Found: "
+                               + ", ".join(n for n, _ in found) + "\n(Try an inner-APK pattern.)")
+            inner_name, apk = chosen
+            log(f"Using {inner_name} from the archive.")
+        else:
+            apk = dl
+
+        libs = apk_abis(apk)
+        if libs and not any(l in ("armeabi-v7a", "armeabi") for l in libs):
+            raise AddError(f"REJECTED: APK only contains native libs for {libs}; no armeabi-v7a.")
+        log("Reading APK details …")
+        info = apk_info(apk)
+
+    entry = {
+        "id": entry_id or existing.get("id") or slug(repo.split("/")[1]),
+        "repo": repo,
+        "name": name or existing.get("name") or info["label"] or repo.split("/")[1],
+        "description": (description or existing.get("description")
+                        or meta.get("description") or "No description.")[:300],
+        "category": category or existing.get("category") or "Other",
+        "packageName": info["package"],
+        "minSdk": info["minSdk"],
+        "abis": libs or ["any"],
+        "certSha256": info["certs"],
+        "status": existing.get("status") or "active",
+    }
+    if existing.get("statusNote"):
+        entry["statusNote"] = existing["statusNote"]
+    # system-changes warning (launchers etc.): kept on re-verify, can be set with warning=True
+    if warning or (warning is None and existing.get("warning")):
+        entry["warning"] = True
+    note = warning_note or existing.get("warningNote")
+    if note and entry.get("warning"):
+        entry["warningNote"] = note
+
+    icon_png = normalize_icon(info.get("icon"))
+    if icon:
+        entry["icon"] = icon
+    elif icon_png:
+        entry["icon"] = f"icons/{entry['id']}.png"     # relative to catalog/, resolved by the app
+    elif existing.get("icon"):
+        entry["icon"] = existing["icon"]
+    if asset_pattern:
+        entry["assetPattern"] = asset_pattern
+    if inner_pattern:
+        entry["innerApkPattern"] = inner_pattern
+
+    notes = []
+    if info["minSdk"] > 22:
+        notes.append(f"minSdk {info['minSdk']}: won't show on devices older than that (e.g. Fire OS 5).")
+    return {
+        "entry": entry,
+        "icon_png": None if icon else icon_png,
+        "icon_from_arg": bool(icon),
+        "tag": rel["tag_name"],
+        "asset": asset["name"],
+        "inner": inner_name,
+        "libs": libs,
+        "notes": notes,
+    }
+
+
+# ---------- command line ----------
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -246,6 +360,8 @@ def main():
     p.add_argument("--icon", help="icon URL (optional)")
     p.add_argument("--asset-pattern", help="regex to force a specific release asset")
     p.add_argument("--inner-pattern", help="regex to pick the APK inside an archive asset")
+    p.add_argument("--warning", action="store_true", help="show the system-changes warning on this app")
+    p.add_argument("--warning-note", help="extra text shown with the warning")
     p.add_argument("--force", action="store_true", help="replace an existing entry")
     p.add_argument("-y", "--yes", action="store_true", help="don't ask for confirmation")
     p.add_argument("--remove", metavar="ID", help="remove an entry by id")
@@ -264,92 +380,34 @@ def main():
 
     if not args.repo:
         p.error("repo is required")
-    repo = parse_repo(args.repo)
 
-    existing = next((a for a in store["apps"] if a["repo"].lower() == repo.lower()), None)
-    if existing and not args.force:
-        sys.exit(f"{repo} is already in the catalog as '{existing['id']}'. Use --force to re-verify.")
-
-    print(f"Fetching {repo} …")
     try:
-        meta = gh_json(f"https://api.github.com/repos/{repo}")
-        rel = gh_json(f"https://api.github.com/repos/{repo}/releases/latest")
-    except urllib.error.HTTPError as e:
-        sys.exit(f"GitHub error {e.code}: repo missing/private, or it has no (non-prerelease) release.")
+        repo = parse_repo(args.repo)
+        existing = next((a for a in store["apps"] if a["repo"].lower() == repo.lower()), None)
+        if existing and not args.force:
+            sys.exit(f"{repo} is already in the catalog as '{existing['id']}'. Use --force to re-verify.")
 
-    asset = pick_asset(rel.get("assets", []), args.asset_pattern)
-    if not asset:
-        names = ", ".join(a["name"] for a in rel.get("assets", [])) or "none"
-        sys.exit(f"No usable APK (or Android archive) for armeabi-v7a in {rel['tag_name']}. Assets: {names}\n"
-                 f"(Try --asset-pattern if the naming is unusual.)")
+        r = build_entry(repo, category=args.category, name=args.name, description=args.description,
+                        entry_id=args.id, icon=args.icon, asset_pattern=args.asset_pattern,
+                        inner_pattern=args.inner_pattern, existing=existing,
+                        warning=True if args.warning else None, warning_note=args.warning_note)
+    except AddError as e:
+        sys.exit(str(e))
 
-    with tempfile.TemporaryDirectory() as tmp:
-        dl = Path(tmp) / "asset.bin"
-        print(f"Downloading {asset['name']} ({asset['size'] / 1e6:.1f} MB) …")
-        download(asset["browser_download_url"], dl)
-
-        if is_archive(asset["name"]):
-            found = extract_apks(dl, asset["name"], tmp)
-            if not found:
-                sys.exit(f"No .apk found inside {asset['name']}.")
-            chosen = pick_inner(found, args.inner_pattern)
-            if not chosen:
-                sys.exit("No suitable APK inside the archive. Found: "
-                         + ", ".join(n for n, _ in found) + "\n(Try --inner-pattern.)")
-            inner_name, apk = chosen
-            print(f"Using {inner_name} from the archive.")
-        else:
-            apk = dl
-
-        libs = apk_abis(apk)
-        if libs and not any(l in ("armeabi-v7a", "armeabi") for l in libs):
-            sys.exit(f"REJECTED: APK only contains native libs for {libs}; no armeabi-v7a.")
-        info = apk_info(apk)
-
-    entry = {
-        "id": args.id or (existing or {}).get("id") or slug(repo.split("/")[1]),
-        "repo": repo,
-        "name": args.name or (existing or {}).get("name") or info["label"] or repo.split("/")[1],
-        "description": (args.description or (existing or {}).get("description")
-                        or meta.get("description") or "No description.")[:300],
-        "category": args.category or (existing or {}).get("category") or "Other",
-        "packageName": info["package"],
-        "minSdk": info["minSdk"],
-        "abis": libs or ["any"],
-        "certSha256": info["certs"],
-        "status": "active",
-    }
-    icon_png = normalize_icon(info.get("icon"))
-    if args.icon:
-        icon = args.icon
-    elif icon_png:
-        icon = f"icons/{entry['id']}.png"      # relative to catalog/, resolved by the app
-    else:
-        icon = (existing or {}).get("icon")
-    if icon:
-        entry["icon"] = icon
-    pattern = args.asset_pattern or (existing or {}).get("assetPattern")
-    if pattern:
-        entry["assetPattern"] = pattern
-    inner = args.inner_pattern or (existing or {}).get("innerApkPattern")
-    if inner:
-        entry["innerApkPattern"] = inner
-
+    entry = r["entry"]
     print("\n" + json.dumps(entry, indent=2, ensure_ascii=False))
-    print(f"\nRelease {rel['tag_name']} · asset {asset['name']}")
-    print("Icon: " + ("extracted from the APK" if icon_png and not args.icon else
-                      "from --icon" if args.icon else
+    print(f"\nRelease {r['tag']} · asset {r['asset']}")
+    print("Icon: " + ("extracted from the APK" if r["icon_png"] else
+                      "from --icon" if r["icon_from_arg"] else
                       "no raster icon in the APK – the app will use the owner's GitHub avatar"))
-    if info["minSdk"] > 22:
-        print(f"Note: minSdk {info['minSdk']} – won't show on devices older than that (e.g. Fire OS 5).")
+    for n in r["notes"]:
+        print("Note: " + n)
 
     if not args.yes and input("\nAdd to catalog? [Y/n] ").strip().lower() in ("n", "no"):
         sys.exit("Aborted.")
 
-    if icon_png and not args.icon:
-        icons_dir = STORE.parent / "icons"
-        icons_dir.mkdir(parents=True, exist_ok=True)
-        (icons_dir / f"{entry['id']}.png").write_bytes(icon_png)
+    if r["icon_png"]:
+        write_icon(entry["id"], r["icon_png"])
 
     store["apps"] = [a for a in store["apps"] if a["repo"].lower() != repo.lower()] + [entry]
     save_store(store)

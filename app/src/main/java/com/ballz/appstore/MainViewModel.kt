@@ -26,6 +26,9 @@ data class Detail(
 
 enum class Badge { None, Installed, Update }
 
+const val DEFAULT_WARNING =
+    "This app makes SYSTEM changes. Use it at your own risk. See the developer's page before use."
+
 fun formatBytes(b: Long): String = when {
     b >= 1_048_576 -> "%.1f MB".format(b / 1_048_576.0)
     b >= 1024 -> "${b / 1024} KB"
@@ -53,13 +56,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var detail by mutableStateOf(Detail())
         private set
+    var warningText by mutableStateOf(DEFAULT_WARNING)
+        private set
+    var confirmingInstall by mutableStateOf(false)
+        private set
     var cacheBytes by mutableStateOf(0L)
         private set
     var cacheNote by mutableStateOf<String?>(null)
         private set
 
     init {
-        apps = repo.loadLocal().apps.filter { isCompatible(it) }
+        val local = repo.loadLocal()
+        apps = local.apps.filter { isCompatible(it) }
+        warningText = local.warningText?.takeIf { it.isNotBlank() } ?: DEFAULT_WARNING
         latest = latestRepo.loadLocal()
         refreshInstalled()
         refreshCacheSize(clean = true)   // leftovers from a previous session
@@ -79,6 +88,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val remote = repo.fetchRemote()
             if (remote != null) {
                 apps = remote.apps.filter { isCompatible(it) }
+                warningText = remote.warningText?.takeIf { it.isNotBlank() } ?: DEFAULT_WARNING
                 offline = false
             } else offline = true
             latestRepo.fetchRemote()?.let { latest = it }
@@ -137,6 +147,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun open(app: CatalogApp) {
         selected = app
+        confirmingInstall = false
         detail = Detail(loading = true)
         viewModelScope.launch {
             val installed = UpdateChecker.installedVersion(ctx, app.packageName)
@@ -154,7 +165,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun back() { selected = null }
+    fun back() {
+        selected = null
+        confirmingInstall = false
+    }
+
+    /** Install/Update button: apps flagged with a warning ask for confirmation first. */
+    fun requestInstall() {
+        if (selected?.warning == true) confirmingInstall = true else installOrUpdate()
+    }
+
+    fun confirmInstall() {
+        confirmingInstall = false
+        installOrUpdate()
+    }
+
+    fun cancelConfirm() { confirmingInstall = false }
 
     fun installOrUpdate() {
         val app = selected ?: return
