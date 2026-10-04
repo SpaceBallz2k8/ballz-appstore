@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 12,
-  "updatedAt": "2026-10-03T23:30:10Z",
+  "catalogVersion": 13,
+  "updatedAt": "2026-10-04T00:04:10Z",
   "apps": [
     {
       "id": "ballz-appstore",
@@ -75,6 +75,23 @@
       "status": "active"
     },
     {
+      "id": "chaosflix",
+      "repo": "NiciDieNase/chaosflix",
+      "name": "Chaosflix",
+      "description": "AndroidTV/Fire TV client for media.ccc.de",
+      "category": "Streaming",
+      "packageName": "de.nicidienase.chaosflix",
+      "minSdk": 22,
+      "abis": [
+        "any"
+      ],
+      "certSha256": [
+        "2ae271bb083f3a91eaad525f8ff4b7667fce2ca3f19a3c75d9bfed79e8895ced"
+      ],
+      "status": "active",
+      "icon": "icons/chaosflix.png"
+    },
+    {
       "id": "clipious",
       "repo": "lamarios/clipious",
       "name": "Clipious",
@@ -89,6 +106,23 @@
         "19de04e5d68466069d30ec63c6ba7d9e3cf73b5d61cb4b3762c2b9b253ecbd03"
       ],
       "status": "active"
+    },
+    {
+      "id": "smarttube",
+      "repo": "yuliskov/SmartTube",
+      "name": "SmartTube",
+      "description": "Browse media content with your own rules on Android TV",
+      "category": "Streaming",
+      "packageName": "org.smarttube.stable",
+      "minSdk": 17,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "109735aa24fe85e2e1623ebb3b1ecc4bf4263f4c6374e4411d646bfa2eda482a"
+      ],
+      "status": "active",
+      "icon": "icons/smarttube.png"
     },
     {
       "id": "tv-bro",
