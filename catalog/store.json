@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 15,
-  "updatedAt": "2026-10-04T10:58:49Z",
+  "catalogVersion": 16,
+  "updatedAt": "2026-10-07T09:32:03Z",
   "apps": [
     {
       "id": "ballz-appstore",
@@ -104,6 +104,22 @@
       ],
       "certSha256": [
         "19de04e5d68466069d30ec63c6ba7d9e3cf73b5d61cb4b3762c2b9b253ecbd03"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "duox-tv",
+      "repo": "Errorx0x/DuoX-TV",
+      "name": "DuoX",
+      "description": "Free Twitch and Kick client for Fire TV and Android TV: 4-channel multiview, voice-synced VODs, voice search, QR chat.",
+      "category": "Streaming",
+      "packageName": "tv.duox.tv",
+      "minSdk": 28,
+      "abis": [
+        "any"
+      ],
+      "certSha256": [
+        "bf993d6ebc600b3658c085710f76cf04c7ba578debcf5144a3c153b6c0a2a07a"
       ],
       "status": "active"
     },
