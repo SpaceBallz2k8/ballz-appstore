@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 18,
-  "updatedAt": "2026-10-07T11:41:51Z",
+  "catalogVersion": 19,
+  "updatedAt": "2026-10-07T11:58:14Z",
   "apps": [
     {
       "id": "ballz-appstore",
@@ -23,13 +23,13 @@
       "status": "active"
     },
     {
-      "id": "newpipe",
-      "repo": "TeamNewPipe/NewPipe",
-      "name": "NewPipe",
-      "description": "A libre lightweight streaming front-end for Android.",
-      "category": "Media",
-      "packageName": "org.schabi.newpipe",
-      "minSdk": 23,
+      "id": "amazefilemanager",
+      "repo": "TeamAmaze/AmazeFileManager",
+      "name": "Amaze",
+      "description": "Material design file manager for Android",
+      "category": "File Managers",
+      "packageName": "com.amaze.filemanager",
+      "minSdk": 21,
       "abis": [
         "arm64-v8a",
         "armeabi-v7a",
@@ -37,7 +37,150 @@
         "x86_64"
       ],
       "certSha256": [
-        "cb84069bd68116bafae5ee4ee5b08a567aa6d898404e7cb12f9e756df5cf5cab"
+        "aff656d7ca84d71254d272c55fb420edf172b2549de14f5ccefd5a82528df554"
+      ],
+      "status": "active",
+      "icon": "icons/amazefilemanager.png",
+      "warning": true,
+      "warningNote": "File Managers can kill your system if used improperly. You have been warned."
+    },
+    {
+      "id": "firefiles",
+      "repo": "gigabytedevelopers/FireFiles",
+      "name": "FireFiles",
+      "description": "Powerful Android File Manager for everything that runs on Android OS (Android TV, Android Watch, Mobile, etc)",
+      "category": "File Managers",
+      "packageName": "com.gigabytedevelopersinc.app.explorer",
+      "minSdk": 21,
+      "abis": [
+        "arm64-v8a",
+        "armeabi",
+        "armeabi-v7a",
+        "mips",
+        "mips64",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "10c18de42c5d807095171a480b8064999ce64efdeef8d81fa41942dad9d7687f"
+      ],
+      "status": "active",
+      "icon": "icons/firefiles.png",
+      "warning": true,
+      "warningNote": "File Managers can kill your system if used improperly. You have been warned."
+    },
+    {
+      "id": "fluffy",
+      "repo": "mlm-games/Fluffy",
+      "name": "Fluffy",
+      "description": "Archive viewer for TVs",
+      "category": "File Managers",
+      "packageName": "app.fluffy",
+      "minSdk": 24,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "4aed2f691df64a7b0fea25a6b8c80183c6dc520e049dac0178defa1d6472228f"
+      ],
+      "status": "active",
+      "warning": true,
+      "warningNote": "File Managers can kill your system if used improperly. You have been warned."
+    },
+    {
+      "id": "prism-file-explorer",
+      "repo": "Raival-e/Prism-File-Explorer",
+      "name": "Prism File Explorer",
+      "description": "A modern, feature-rich, and lightweight file manager for Android, built entirely with Kotlin and Jetpack Compose.",
+      "category": "File Managers",
+      "packageName": "com.raival.compose.file.explorer",
+      "minSdk": 26,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "830166b8bea60c42c6785459043adc1fb3b30537a56a7c90a595cb9e08126c26"
+      ],
+      "status": "active",
+      "warning": true,
+      "warningNote": "File Managers can kill your system if used improperly. You have been warned."
+    },
+    {
+      "id": "ultimate-file-manager-pro",
+      "repo": "Kilowatch/ultimate-file-manager-pro",
+      "name": "Ultimate File Manager Pro",
+      "description": "Ultimate File Manager Pro",
+      "category": "File Managers",
+      "packageName": "za.kilowatch.ultimatefilemanager.foss",
+      "minSdk": 26,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "5d3b2554cafe814592f39196dd36e7e36313e6fa0f54019c89ac401665f4e53f"
+      ],
+      "status": "active",
+      "warning": true,
+      "warningNote": "File Managers can kill your system if used improperly. You have been warned."
+    },
+    {
+      "id": "voyager",
+      "repo": "AlanHuang99/Voyager",
+      "name": "Voyager",
+      "description": "Material Design 3 file browser for Android with SFTP, FTP, SMB, WebDAV support",
+      "category": "File Managers",
+      "packageName": "com.voyagerfiles",
+      "minSdk": 26,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "db496277d456751abe8ca6405026337c81a561a134e38d49c8e21fb8f036badf"
+      ],
+      "status": "active",
+      "warning": true,
+      "warningNote": "File Managers can kill your system if used improperly. You have been warned."
+    },
+    {
+      "id": "lumen-app",
+      "repo": "Talha-Ashraf420/Lumen-App",
+      "name": "Lumen Community",
+      "description": "A premium, open-source IPTV player — Live TV, Movies & Series. Bring your own Xtream/M3U. Android, TV, iOS, macOS, Windows, Linux.",
+      "category": "IPTV",
+      "packageName": "com.talhaashraf.lumen.community",
+      "minSdk": 24,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86_64"
+      ],
+      "certSha256": [
+        "50d968dc44371be48088422d0e5bf0b7b7b3a8753a03e91533b32f8da8267533"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "lumora",
+      "repo": "disclosurez/Lumora",
+      "name": "Lumora",
+      "description": "Native Kotlin IPTV & media client for Android, Android TV, Fire TV and Android Auto (parked). Xtream Codes, M3U, Stalker Portal, Jellyfin and Plex merged into one D-pad UI. Views/XML, no Compose.",
+      "category": "IPTV",
+      "packageName": "com.lumora",
+      "minSdk": 25,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "f6268c204a1c55891dd0670d96e1d9618299baa9402b173cc8062267a994f0d4"
       ],
       "status": "active"
     },
@@ -55,6 +198,25 @@
       ],
       "certSha256": [
         "9778d7533d4bc1aee80c1d2d7043fb22cba3b79cd11911d3b131c1316d5f17c1"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "jellyfin-androidtv",
+      "repo": "jellyfin/jellyfin-androidtv",
+      "name": "Jellyfin",
+      "description": "Android TV Client for Jellyfin",
+      "category": "Media Player",
+      "packageName": "org.jellyfin.androidtv",
+      "minSdk": 21,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "d881796ed2a67ff6ef9f676828723c6b1fa18e09388962cba4abc4a594a69131"
       ],
       "status": "active"
     },
@@ -92,6 +254,42 @@
         "903b862cf5e3a0bfbad9b5e049ec3de703f83422bba9c5559a7b019716316e72"
       ],
       "status": "active"
+    },
+    {
+      "id": "aerialviews",
+      "repo": "theothernt/AerialViews",
+      "name": "Aerial Views",
+      "description": "A screensaver for Android TV devices including Google TV, Nvidia Shield, and Fire TV. Inspired by Apple TV's video screensaver.",
+      "category": "Screensavers",
+      "packageName": "com.neilturner.aerialviews",
+      "minSdk": 23,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "383b3b2df6d2b17cec60542c576408b0deae502f37749eb5ac7fef2f206fa51b"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "nebula",
+      "repo": "jordanade/Nebula",
+      "name": "Nebula HDR",
+      "description": "Space nebula fly-through screensaver for NVIDIA Shield",
+      "category": "Screensavers",
+      "packageName": "com.jordanadema.nebula",
+      "minSdk": 21,
+      "abis": [
+        "any"
+      ],
+      "certSha256": [
+        "878ec6cee21525482bd880c97bde14e1be71a27d581502f7326457daf6693639"
+      ],
+      "status": "active",
+      "icon": "icons/nebula.png"
     },
     {
       "id": "chaosflix",
@@ -143,6 +341,41 @@
       "status": "active"
     },
     {
+      "id": "flow",
+      "repo": "A-EDev/flow",
+      "name": "Flow",
+      "description": "A modern, feature-rich YouTube and YouTube  Music client with local recommendation for Android built with Jetpack Compose",
+      "category": "Streaming",
+      "packageName": "io.github.aedev.flow",
+      "minSdk": 26,
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "certSha256": [
+        "4322294ed4caa2d4294140095818080ffe8acc1fbe3cdc76107df45c5286be40"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "newpipe",
+      "repo": "TeamNewPipe/NewPipe",
+      "name": "NewPipe",
+      "description": "A libre lightweight streaming front-end for Android.",
+      "category": "Streaming",
+      "packageName": "org.schabi.newpipe",
+      "minSdk": 23,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "cb84069bd68116bafae5ee4ee5b08a567aa6d898404e7cb12f9e756df5cf5cab"
+      ],
+      "status": "active"
+    },
+    {
       "id": "smarttube",
       "repo": "yuliskov/SmartTube",
       "name": "SmartTube",
@@ -158,6 +391,44 @@
       ],
       "status": "active",
       "icon": "icons/smarttube.png"
+    },
+    {
+      "id": "smarttwitchtv",
+      "repo": "fgl27/SmartTwitchTV",
+      "name": "SmartTV Client for Twitch",
+      "description": "A Twitch web client that works on Android TVs and web base systems",
+      "category": "Streaming",
+      "packageName": "com.fgl27.twitch",
+      "minSdk": 21,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "838d9d90b5bcaa89c7376948b0d8da141c2d0cbba3b983b02a0c443dd63744d9"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "cpu-info",
+      "repo": "kamgurgul/cpu-info",
+      "name": "CPU Info",
+      "description": "CPU Info is a multiplatform application which provides information about device hardware and software",
+      "category": "System Info",
+      "packageName": "com.kgurgul.cpuinfo",
+      "minSdk": 24,
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "certSha256": [
+        "af2423beb589e55fdf951fde2f23edaa785f57c714764afbbdd15a85f1aed33c"
+      ],
+      "status": "active"
     },
     {
       "id": "keymapper",
